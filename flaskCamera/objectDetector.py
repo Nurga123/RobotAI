@@ -30,29 +30,7 @@ def getFramesGenerator():
             results = model(frame)
             annotated_frame = results[0].plot()
 
-            #hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  # переводим кадр из RGB в HSV
-            #binary = cv2.inRange(hsv, (18, 60, 100), (32, 255, 255))  # пороговая обработка кадра (выделяем все желтое)
-
-            #contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
-            #                               cv2.CHAIN_APPROX_NONE)  # получаем контуры выделенных областей
-
-            # if len(contours) != 0:  # если найден хоть один контур
-            #     maxc = max(contours, key=cv2.contourArea)  # находим наибольший контур
-            #     moments = cv2.moments(maxc)  # получаем моменты этого контура
-            #
-            #     if moments["m00"] > 20:  # контуры с площадью меньше 20 пикселей не будут учитываться
-            #         cx = int(moments["m10"] / moments["m00"])  # находим координаты центра контура по x
-            #         cy = int(moments["m01"] / moments["m00"])  # находим координаты центра контура по y
-            #
-            #         iSee = True  # устанавливаем флаг, что контур найден
-            #
-            #         controlX = 2 * (cx - width / 2) / width  # находим отклонение найденного объекта от центра кадра и
-            #         # нормализуем его (приводим к диапазону [-1; 1])
-            #
-            #         cv2.drawContours(frame, maxc, -1, (0, 255, 0), 1)  # рисуем контур
-            #         cv2.line(frame, (cx, 0), (cx, height), (0, 255, 0), 1)  # рисуем линию линию по x
-            #         cv2.line(frame, (0, cy), (width, cy), (0, 255, 0), 1)  # линия по y
-
+            
             if iSee:  # если был найден объект
                 controlY = 0.5  # начинаем ехать вперед с 50% мощностью
             else:

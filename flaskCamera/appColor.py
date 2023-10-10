@@ -7,101 +7,119 @@ import json
 import argparse
 
 app = Flask(__name__)
-camera = cv2.VideoCapture(0)  # веб камера
+camera = cv2.VideoCapture(0)
 
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, 320)   # Определенные разрешения с некоторыми камерами могут не работать, поэтому для
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)  # уменьшения разрешения можно также использовать resize в методе getFramesGenerator
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 
-controlX, controlY = 0.0, 0.0  # глобальные переменные вектора движения робота. Диапазоны: [-1, 1]
+controlX, controlY = 0.0, 0.0
 
 
 def getFramesGenerator():
-    """ Генератор фреймов для вывода в веб-страницу, тут же можно поиграть с openCV"""
+    """Генератор фреймов для вывода в веб-страницу, тут же можно поиграть с openCV"""
     global controlX, controlY
     while True:
-        iSee = False  # флаг: был ли найден контур
+        iSee = False
 
-        success, frame = camera.read()  # Получаем фрейм с камеры
-
+        success, frame = camera.read()
         if success:
-            frame = cv2.resize(frame, (360, 240), interpolation=cv2.INTER_AREA)  # уменьшаем разрешение кадров (если
-            # видео тупит, можно уменьшить еще больше)
-            height, width = frame.shape[0:2]  # получаем разрешение кадра
+            frame = cv2.resize(frame, (360, 240), interpolation=cv2.INTER_AREA)
+            height, width = frame.shape[0:2]
 
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  # переводим кадр из RGB в HSV
-            binary = cv2.inRange(hsv, (18, 60, 100), (32, 255, 255))  # пороговая обработка кадра (выделяем все желтое)
-            #binary = cv2.inRange(hsv, (0, 0, 0), (255, 255, 35))  # пороговая обработка кадра (выделяем все черное)
+            binary = cv2.inRange(
+                hsv, (18, 60, 100), (32, 255, 255)
+            )  # пороговая обработка кадра (выделяем все желтое)
 
-            """
-            # Чтобы выделить все красное необходимо произвести две пороговые обработки, т.к. тон красного цвета в hsv 
-            # находится в начале и конце диапазона hue: [0; 180), а в openCV, хз почему, этот диапазон не закольцован.
-            # поэтому выделяем красный цвет с одного и другого конца, а потом просто складываем обе битовые маски вместе
-
-            bin1 = cv2.inRange(hsv, (0, 60, 70), (10, 255, 255)) # красный цвет с одного конца
-            bin2 = cv2.inRange(hsv, (160, 60, 70), (179, 255, 255)) # красный цвет с другого конца
-            binary = bin1 + bin2  # складываем битовые маски
-            """
-
-            contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
-                                           cv2.CHAIN_APPROX_NONE)  # получаем контуры выделенных областей
-
-            if len(contours) != 0:  # если найден хоть один контур
-                maxc = max(contours, key=cv2.contourArea)  # находим наибольший контур
+            contours, _ = cv2.findContours(
+                binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
+            )
+            if len(contours) != 0:
+                maxc = max(contours, key=cv2.contourArea)
                 moments = cv2.moments(maxc)  # получаем моменты этого контура
-                """
-                # moments["m00"] - нулевой момент соответствует площади контура в пикселях,
-                # поэтому, если в битовой маске присутствуют шумы, можно вместо
-                # if moments["m00"] != 0:  # использовать
-                
-                if moments["m00"] > 20: # тогда контуры с площадью меньше 20 пикселей не будут учитываться 
-                """
-                if moments["m00"] > 20:  # контуры с площадью меньше 20 пикселей не будут учитываться
-                    cx = int(moments["m10"] / moments["m00"])  # находим координаты центра контура по x
-                    cy = int(moments["m01"] / moments["m00"])  # находим координаты центра контура по y
 
-                    iSee = True  # устанавливаем флаг, что контур найден
+                if (
+                    moments["m00"] > 20
+                ):  # контуры с площадью меньше 20 пикселей не будут учитываться
+                    cx = int(
+                        moments["m10"] / moments["m00"]
+                    )  # находим координаты центра контура по x
+                    cy = int(
+                        moments["m01"] / moments["m00"]
+                    )  # находим координаты центра контура по y
 
-                    controlX = 2 * (cx - width / 2) / width  # находим отклонение найденного объекта от центра кадра и
-                    # нормализуем его (приводим к диапазону [-1; 1])
+                    iSee = True  # флаг
+
+                    controlX = (
+                        2 * (cx - width / 2) / width
+                    )  # нормализация к диапазону [1:1]
 
                     cv2.drawContours(frame, maxc, -1, (0, 255, 0), 1)  # рисуем контур
-                    cv2.line(frame, (cx, 0), (cx, height), (0, 255, 0), 1)  # рисуем линию линию по x
+                    cv2.line(
+                        frame, (cx, 0), (cx, height), (0, 255, 0), 1
+                    )  # рисуем линию линию по x
                     cv2.line(frame, (0, cy), (width, cy), (0, 255, 0), 1)  # линия по y
 
-            if iSee:    # если был найден объект
-                controlY = 0.5  # начинаем ехать вперед с 50% мощностью 
+            if iSee:  # если был найден объект
+                controlY = 0.5  # начинаем ехать вперед с 50% мощностью
             else:
                 controlY = 0.0  # останавливаемся
                 controlX = 0.0  # сбрасываем меру поворота
 
-            miniBin = cv2.resize(binary, (int(binary.shape[1] / 4), int(binary.shape[0] / 4)),  # накладываем поверх
-                                 interpolation=cv2.INTER_AREA)                                  # кадра маленькую
-            miniBin = cv2.cvtColor(miniBin, cv2.COLOR_GRAY2BGR)                                 # битовую маску
-            frame[-2 - miniBin.shape[0]:-2, 2:2 + miniBin.shape[1]] = miniBin             # для наглядности
+            miniBin = cv2.resize(
+                binary,
+                (
+                    int(binary.shape[1] / 4),
+                    int(binary.shape[0] / 4),
+                ),  # накладываем поверх
+                interpolation=cv2.INTER_AREA,
+            )  # кадра маленькую
+            miniBin = cv2.cvtColor(miniBin, cv2.COLOR_GRAY2BGR)  # битовую маску
+            frame[
+                -2 - miniBin.shape[0] : -2, 2 : 2 + miniBin.shape[1]
+            ] = miniBin  # для наглядности
 
-            cv2.putText(frame, 'iSee: {};'.format(iSee), (width - 120, height - 5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 0, 0), 1, cv2.LINE_AA)  # добавляем поверх кадра текст
-            cv2.putText(frame, 'controlX: {:.2f}'.format(controlX), (width - 70, height - 5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 0, 0), 1, cv2.LINE_AA)  # добавляем поверх кадра текст
+            cv2.putText(
+                frame,
+                "iSee: {};".format(iSee),
+                (width - 120, height - 5),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.25,
+                (255, 0, 0),
+                1,
+                cv2.LINE_AA,
+            )  # добавляем поверх кадра текст
+            cv2.putText(
+                frame,
+                "controlX: {:.2f}".format(controlX),
+                (width - 70, height - 5),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.25,
+                (255, 0, 0),
+                1,
+                cv2.LINE_AA,
+            )  # добавляем поверх кадра текст
 
-            _, buffer = cv2.imencode('.jpg', frame)
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+            _, buffer = cv2.imencode(".jpg", frame)
+            yield (
+                b"--frame\r\n"
+                b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
+            )
 
 
-@app.route('/video_feed')
+@app.route("/video_feed")
 def video_feed():
-    """ Генерируем и отправляем изображения с камеры"""
-    return Response(getFramesGenerator(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(
+        getFramesGenerator(), mimetype="multipart/x-mixed-replace; boundary=frame"
+    )
 
 
-@app.route('/')
+@app.route("/")
 def index():
-    """ Крутим html страницу """
-    return render_template('index.html')
+    return render_template("index.html")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # # Arduino
     # msg = {
     #     "speedA": 0,  # в пакете посылается скорость на левый и правый борт тележки
@@ -114,9 +132,11 @@ if __name__ == '__main__':
     # sendFreq = 10  # слать 10 пакетов в секунду
     #
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--port', type=int, default=5000, help="Running port")
-    parser.add_argument("-i", "--ip", type=str, default='0.0.0.0', help="Ip address")
-    parser.add_argument('-s', '--serial', type=str, default='/dev/ttyUSB0', help="Serial port")
+    parser.add_argument("-p", "--port", type=int, default=5000, help="Running port")
+    parser.add_argument("-i", "--ip", type=str, default="0.0.0.0", help="Ip address")
+    parser.add_argument(
+        "-s", "--serial", type=str, default="/dev/ttyUSB0", help="Serial port"
+    )
     args = parser.parse_args()
     #
     # serialPort = serial.Serial(args.serial, 9600)   # открываем uart
@@ -125,18 +145,17 @@ if __name__ == '__main__':
     #     """ функция цикличной отправки пакетов по uart """
     #     global controlX, controlY
     #     while True:
-    #         speedA = maxAbsSpeed * (controlY + controlX)    # преобразуем скорость робота,
-    #         speedB = maxAbsSpeed * (controlY - controlX)    # в зависимости от положения джойстика
+    #         speedA = maxAbsSpeed * (controlY + controlX)
+    #         speedB = maxAbsSpeed * (controlY - controlX)
     #
-    #         speedA = max(-maxAbsSpeed, min(speedA, maxAbsSpeed))    # функция аналогичная constrain в arduino
-    #         speedB = max(-maxAbsSpeed, min(speedB, maxAbsSpeed))    # функция аналогичная constrain в arduino
+    #         speedA = max(-maxAbsSpeed, min(speedA, maxAbsSpeed))
+    #         speedB = max(-maxAbsSpeed, min(speedB, maxAbsSpeed))
     #
-    #         msg["speedA"], msg["speedB"] = speedScale * speedA, speedScale * speedB     # урезаем скорость и упаковываем
+    #         msg["speedA"], msg["speedB"] = speedScale * speedA, speedScale * speedB
     #
-    #         serialPort.write(json.dumps(msg, ensure_ascii=False).encode("utf8"))  # отправляем пакет в виде json файла
+    #         serialPort.write(json.dumps(msg, ensure_ascii=False).encode("utf8"))
     #         time.sleep(1 / sendFreq)
     #
-    # threading.Thread(target=sender, daemon=True).start()    # запускаем тред отправки пакетов по uart с демоном
+    # threading.Thread(target=sender, daemon=True).start()
 
-    app.run(debug=False, host=args.ip, port=5000)   # запускаем flask приложение
-
+    app.run(debug=False, host=args.ip, port=5000)  # запускаем flask приложение
