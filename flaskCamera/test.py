@@ -1,27 +1,34 @@
 import cv2
 from ultralytics import YOLO
+from flask import Flask, render_template, Response, request
 
+app = Flask(__name__)
 cap = cv2.VideoCapture(0)
 model = YOLO("../models/best.pt")
-while True:
-    ret, frame = cap.read()
 
-    results = model(frame)
-    # for result in results:
-    #     boxes = result.boxes.numpy()
-    #     labels = result.names.numpy()  # Получение названий классов
+def framesGenerator():
+    while True:
+        ret, frame = cap.read()
         
-    #     xyxys = boxes.xyxy
-    #     for xyxy in xyxys:
-    #         x1, y1, x2, y2 = map(int, xyxy)
-    #         class_id = result.get_field("labels")[0]  # Получение ID класса
-    #         class_name = labels[class_id]  # Получение названия класса
-    #         center_x = (x1 + x2) // 2  # Рассчет координат центра по X
-    #         center_y = (y1 + y2) // 2  # Рассчет координат центра по Y
+        if not ret:
+            break
+        results = model(frame)
+        frame_annotated = results[0].plot()
+        
+        _, buffer = cv2.imencode(".jpg", frame_annotated)
+        yield (
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n")
+        
+@app.route("/video_feed")
+def video_feed():
+    return Response(
+        framesGenerator(), mimetype="multipart/x-mixed-replace; boundary=frame"
+    )
 
-    #         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-    #         cv2.putText(frame, f"{class_name}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-    #         cv2.circle(frame, (center_x, center_y), 3, (0, 0, 255), -1)  # Рисование красной точки в центре объекта
-    frame_annotated = results[0].plot()
-    cv2.imshow('Frame', frame_annotated)
-    cv2.waitKey(1)
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+if __name__ == "__main__":
+    app.run(debug=False, host='0.0.0.0', port=5000)
