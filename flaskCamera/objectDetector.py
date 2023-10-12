@@ -37,11 +37,6 @@ def getFramesGenerator():
                 controlY = 0.0  # останавливаемся
                 controlX = 0.0  # сбрасываем меру поворота
 
-            # miniBin = cv2.resize(binary, (int(binary.shape[1] / 4), int(binary.shape[0] / 4)),  # накладываем поверх
-            #                      interpolation=cv2.INTER_AREA)  # кадра маленькую
-            # miniBin = cv2.cvtColor(miniBin, cv2.COLOR_GRAY2BGR)  # битовую маску
-            # frame[-2 - miniBin.shape[0]:-2, 2:2 + miniBin.shape[1]] = miniBin  # для наглядности
-
             cv2.putText(frame, 'iSee: {};'.format(iSee), (width - 120, height - 5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 0, 0), 1, cv2.LINE_AA)  # добавляем поверх кадра текст
             cv2.putText(frame, 'controlX: {:.2f}'.format(controlX), (width - 70, height - 5),
