@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 
 cap = cv2.VideoCapture(0)
-model = YOLO("RobotAI/models/best.pt")
+model = YOLO("../models/best.pt")
 while True:
     ret, frame = cap.read()
 
