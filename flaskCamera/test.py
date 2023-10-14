@@ -9,12 +9,15 @@ model = YOLO("../models/best.pt")
 def framesGenerator():
     while True:
         ret, frame = cap.read()
+	    
+        #frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         
+        frame_gray = cv2.resize(frame, (180,120), interpolation=cv2.INTER_AREA)
+	
         if not ret:
             break
-        results = model(frame)
+        results = model(frame_gray)
         frame_annotated = results[0].plot()
-        
         _, buffer = cv2.imencode(".jpg", frame_annotated)
         yield (
             b"--frame\r\n"
