@@ -3,19 +3,19 @@ from ultralytics import YOLO
 from flask import Flask, render_template, Response, request
 
 app = Flask(__name__)
-cap = cv2.VideoCapture(2)
-model = YOLO("../models/best.pt")
+cap = cv2.VideoCapture(0)
+model = YOLO("yolov8n.pt")
 
 def framesGenerator():
     while True:
         ret, frame = cap.read()
-	    
-        #frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        frame_gray = cv2.resize(frame, (320,480), interpolation=cv2.INTER_AREA)
-	
         if not ret:
             break
+        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        
+        #frame_resized = cv2.resize(frame, (360,480), interpolation=cv2.INTER_AREA)
+	
+
         results = model(frame)
         #frame_annotated = results[0].plot()
         

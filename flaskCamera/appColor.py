@@ -120,17 +120,16 @@ def index():
 
 
 if __name__ == "__main__":
-    # # Arduino
-    # msg = {
-    #     "speedA": 0,  # в пакете посылается скорость на левый и правый борт тележки
-    #     "speedB": 0  #
-    # }
-    #
-    # # параметры робота
-    # speedScale = 0.60  # определяет скорость в процентах (0.60 = 60%) от максимальной абсолютной
-    # maxAbsSpeed = 100  # максимальное абсолютное отправляемое значение скорости
-    # sendFreq = 10  # слать 10 пакетов в секунду
-    #
+     # Arduino
+    msg = {
+        "speedA": 0,  # в пакете посылается скорость на левый и правый борт тележки
+        "speedB": 0  #
+    }
+    # параметры робота
+    speedScale = 0.60  # определяет скорость в процентах (0.60 = 60%) от максимальной абсолютной
+    maxAbsSpeed = 100  # максимальное абсолютное отправляемое значение скорости
+    sendFreq = 10  # слать 10 пакетов в секунду
+    
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--port", type=int, default=5000, help="Running port")
     parser.add_argument("-i", "--ip", type=str, default="0.0.0.0", help="Ip address")
@@ -138,24 +137,22 @@ if __name__ == "__main__":
         "-s", "--serial", type=str, default="/dev/ttyUSB0", help="Serial port"
     )
     args = parser.parse_args()
-    #
-    # serialPort = serial.Serial(args.serial, 9600)   # открываем uart
-    #
-    # def sender():
-    #     """ функция цикличной отправки пакетов по uart """
-    #     global controlX, controlY
-    #     while True:
-    #         speedA = maxAbsSpeed * (controlY + controlX)
-    #         speedB = maxAbsSpeed * (controlY - controlX)
-    #
-    #         speedA = max(-maxAbsSpeed, min(speedA, maxAbsSpeed))
-    #         speedB = max(-maxAbsSpeed, min(speedB, maxAbsSpeed))
-    #
-    #         msg["speedA"], msg["speedB"] = speedScale * speedA, speedScale * speedB
-    #
-    #         serialPort.write(json.dumps(msg, ensure_ascii=False).encode("utf8"))
-    #         time.sleep(1 / sendFreq)
-    #
-    # threading.Thread(target=sender, daemon=True).start()
+    
+    serialPort = serial.Serial(args.serial, 9600)   # открываем uart
+    def sender():
+        """ функция цикличной отправки пакетов по uart """
+        global controlX, controlY
+        while True:
+            speedA = maxAbsSpeed * (controlY + controlX)
+            speedB = maxAbsSpeed * (controlY - controlX)
+            speedA = max(-maxAbsSpeed, min(speedA, maxAbsSpeed))
+            speedB = max(-maxAbsSpeed, min(speedB, maxAbsSpeed))
+    
+            msg["speedA"], msg["speedB"] = speedScale * speedA, speedScale * speedB
+    
+            serialPort.write(json.dumps(msg, ensure_ascii=False).encode("utf8"))
+            time.sleep(1 / sendFreq)
+    
+    threading.Thread(target=sender, daemon=True).start()
 
     app.run(debug=False, host=args.ip, port=5000)  # запускаем flask приложение
