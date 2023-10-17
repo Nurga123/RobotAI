@@ -1,0 +1,18 @@
+import os
+import time
+
+# Устанавливаем таймер на 5 минут (300 секунд)
+timer_duration = 300
+try:
+    # Ждем 5 минут
+    while True: 
+        timer_duration -= 1
+        time.sleep(1)
+        print(f'Осталось {timer_duration} секунд')
+        if timer_duration == 0:
+            os.system("shutdown /s /t 1")
+    # Завершаем работу компьютера
+    
+except KeyboardInterrupt:
+    # В случае прерывания (например, нажатия Ctrl+C) отменяем завершение работы компьютера
+    os.system("shutdown /a")
