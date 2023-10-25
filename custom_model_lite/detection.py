@@ -15,7 +15,6 @@
 
 # Import packages
 import os
-import argparse
 import cv2
 import numpy as np
 import sys
@@ -68,32 +67,13 @@ class VideoStream:
 
 app=Flask(__name__)
 
-
-# Define and parse input arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('--modeldir', help='Folder the .tflite file is located in',
-                    required=True)
-parser.add_argument('--graph', help='Name of the .tflite file, if different than detect.tflite',
-                    default='detect.tflite')
-parser.add_argument('--labels', help='Name of the labelmap file, if different than labelmap.txt',
-                    default='labelmap.txt')
-parser.add_argument('--threshold', help='Minimum confidence threshold for displaying detected objects',
-                    default=0.5)
-parser.add_argument('--resolution', help='Desired webcam resolution in WxH. If the webcam does not support the resolution entered, errors may occur.',
-                    default='1280x720')
-parser.add_argument('--edgetpu', help='Use Coral Edge TPU Accelerator to speed up detection',
-                    action='store_true')
-
-args = parser.parse_args()
-
-
-MODEL_NAME = args.modeldir
-GRAPH_NAME = args.graph
-LABELMAP_NAME = args.labels
-min_conf_threshold = float(args.threshold)
-resW, resH = args.resolution.split('x')
+MODEL_NAME = 'models/'
+GRAPH_NAME = 'detect.tflite'
+LABELMAP_NAME = 'labelmap.txt'
+min_conf_threshold = '0.5'
+resW, resH = 1280, 720
 imW, imH = int(resW), int(resH)
-use_TPU = args.edgetpu
+
 
 # Import TensorFlow libraries
 # If tflite_runtime is installed, import interpreter from tflite_runtime, else import from regular tensorflow
@@ -101,25 +81,14 @@ use_TPU = args.edgetpu
 pkg = importlib.util.find_spec('tflite_runtime')
 if pkg:
     from tflite_runtime.interpreter import Interpreter
-    if use_TPU:
-        from tflite_runtime.interpreter import load_delegate
 else:
     from tensorflow.lite.python.interpreter import Interpreter
-    if use_TPU:
-        from tensorflow.lite.python.interpreter import load_delegate
-
+    
 # If using Edge TPU, assign filename for Edge TPU model
-if use_TPU:
-    # If user has specified the name of the .tflite file, use that name, otherwise use default 'edgetpu.tflite'
-    if (GRAPH_NAME == 'detect.tflite'):
-        GRAPH_NAME = 'edgetpu.tflite'       
-
 # Get path to current working directory
 CWD_PATH = os.getcwd()
-
 # Path to .tflite file, which contains the model that is used for object detection
 PATH_TO_CKPT = os.path.join(CWD_PATH,MODEL_NAME,GRAPH_NAME)
-
 # Path to label map file
 PATH_TO_LABELS = os.path.join(CWD_PATH,MODEL_NAME,LABELMAP_NAME)
 
@@ -134,13 +103,7 @@ if labels[0] == '???':
     del(labels[0])
 
 # Load the Tensorflow Lite model.
-# If using Edge TPU, use special load_delegate argument
-if use_TPU:
-    interpreter = Interpreter(model_path=PATH_TO_CKPT,
-                              experimental_delegates=[load_delegate('libedgetpu.so.1.0')])
-    print(PATH_TO_CKPT)
-else:
-    interpreter = Interpreter(model_path=PATH_TO_CKPT)
+interpreter = Interpreter(model_path=PATH_TO_CKPT)
 
 interpreter.allocate_tensors()
 
@@ -168,6 +131,9 @@ else: # This is a TF1 model
 frame_rate_calc = 1
 freq = cv2.getTickFrequency()
 
+#Initialize motors control
+controlX = 0.0
+controlY = 0.0
 # Initialize video stream
 cap = VideoStream(resolution=(imW,imH),framerate=30).start()
 time.sleep(1)
@@ -175,22 +141,32 @@ time.sleep(1)
 #for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
 def getFramesGenerator():
     while True:
+        global controlX, controlY
+        iSee=False
+
         # Start timer (for calculating frame rate)
         t1 = cv2.getTickCount()
 
         # Grab frame from video stream
         frame1 = cap.read()
 
+        #if ret != True:
+        #    print('Failed to open camera!')
+        #    break
+        
         # Acquire frame and resize to expected shape [1xHxWx3]
         frame = frame1.copy()
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_resized = cv2.resize(frame_rgb, (width, height))
+        frame_resized = cv2.resize(frame_rgb, (320, 320))
+
+        h, w = frame_resized.shape[0:2]
+
         input_data = np.expand_dims(frame_resized, axis=0)
 
         # Normalize pixel values if using a floating model (i.e. if model is non-quantized)
         if floating_model:
             input_data = (np.float32(input_data) - input_mean) / input_std
-
+ 
         # Perform the actual detection by running the model with the image as input
         interpreter.set_tensor(input_details[0]['index'],input_data)
         interpreter.invoke()
@@ -211,18 +187,35 @@ def getFramesGenerator():
                 ymax = int(min(imH,(boxes[i][2] * imH)))
                 xmax = int(min(imW,(boxes[i][3] * imW)))
                 
+                x_center = (xmin+xmax)/2
+                y_center = (ymin+ymax)/2
+
+                controlX = (
+                    2*(x_center-w/2) / w
+                )
+
                 cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
                 # Draw label
                 object_name = labels[int(classes[i])] # Look up object name from "labels" array using class index
-
-                #SPEEDA SPEEDB
 
                 label = '%s: %d%%' % (object_name, int(scores[i]*100)) # Example: 'person: 72%'
                 labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) # Get font size
                 label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
                 cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) # Draw white box to put label text in
                 cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw label text
+
+                if object_name=='Car':
+                    iSee = True
+                    print('Found car')
+                    break
+                    
+                else:
+                    pass
+
+                cv2.putText(frame, f"iSee: {iSee}", (width - 180, height - 5), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(frame, f"controlX: {round(controlX, 5)}", (width - 500, height - 5), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 1, cv2.LINE_AA)
+
 
                 # Calculate framerate
         t2 = cv2.getTickCount()
