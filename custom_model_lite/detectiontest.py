@@ -147,6 +147,10 @@ else: # This is a TF1 model
 frame_rate_calc = 1
 freq = cv2.getTickFrequency()
 
+controlX = 0.0
+controlY = 0.0
+
+
 # Initialize video stream
 videostream = VideoStream(resolution=(imW,imH),framerate=30).start()
 time.sleep(1)
@@ -154,9 +158,11 @@ time.sleep(1)
 #for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
 def getFramesGenerator():
     while True:
-
         # Start timer (for calculating frame rate)
         t1 = cv2.getTickCount()
+
+        global controlX, controlY
+        iSee = False
 
         # Grab frame from video stream
         frame1 = videostream.read()
@@ -194,16 +200,35 @@ def getFramesGenerator():
                 
                 cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
+                x_center = (xmin + xmax) / 2
+                y_center = (ymax + ymin) / 2
+
+                controlX = (
+                    2*(x_center-imW/2) / imW
+                )
+
+
                 # Draw label
                 object_name = labels[int(classes[i])] # Look up object name from "labels" array using class index
 
                 print(object_name)
+                if object_name == 'Car':
+                    iSee=True
+                    break
+                else:
+                    iSee=False
 
                 label = '%s: %d%%' % (object_name, int(scores[i]*100)) # Example: 'person: 72%'
                 labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) # Get font size
                 label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
                 cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) # Draw white box to put label text in
                 cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw label text
+
+        if iSee == True:
+            controlY = 0.5
+        else:
+            controlX = 0.0
+            controlY = 0.0
 
         # All the results have been drawn on the frame, so it's time to display it.
         #cv2.imshow('Object detector', frame)
