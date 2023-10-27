@@ -7,6 +7,7 @@ import time
 from threading import Thread
 import importlib.util
 from flask import Flask, render_template, Response, Request
+import serial
 
 class VideoStream:
     """Camera object that controls video streaming from the Picamera"""
@@ -185,6 +186,40 @@ def control():
     return '', 200, {'Content-Type': 'text/plain'}
 
 if __name__ == '__main__':
+         # Arduino
+    msg = {
+        "speedA": 0,
+        "speedB": 0  
+    }
+    speedScale = 0.60 
+    maxAbsSpeed = 100 
+    sendFreq = 10 
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--port", type=int, default=5000, help="Running port")
+    parser.add_argument("-i", "--ip", type=str, default="0.0.0.0", help="Ip address")
+    parser.add_argument(
+        "-s", "--serial", type=str, default="/dev/ttyUSB0", help="Serial port"
+    )
+    args = parser.parse_args()
+    
+    serialPort = serial.Serial(args.serial, 9600)
+    def sender():
+        """ функция цикличной отправки пакетов по uart """
+        global controlX, controlY
+        while True:
+            speedA = maxAbsSpeed * (controlY + controlX)
+            speedB = maxAbsSpeed * (controlY - controlX)
+            speedA = max(-maxAbsSpeed, min(speedA, maxAbsSpeed))
+            speedB = max(-maxAbsSpeed, min(speedB, maxAbsSpeed))
+    
+            msg["speedA"], msg["speedB"] = speedScale * speedA, speedScale * speedB
+    
+            serialPort.write(json.dumps(msg, ensure_ascii=False).encode("utf8"))
+            time.sleep(1 / sendFreq)
+    
+    threading.Thread(target=sender, daemon=True).start()
+
     app.run(debug=False, host='0.0.0.0', port=5000)
 
 cv2.destroyAllWindows()
