@@ -15,32 +15,27 @@ class VideoStream:
         ret = self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         ret = self.stream.set(3,resolution[0])
         ret = self.stream.set(4,resolution[1])
-
-	(self.grabbed, self.frame) = self.stream.read()
+        
+        (self.grabbed, self.frame) = self.stream.read()
         self.stopped = False
 
     def start(self):
-	Thread(target=self.update,args=()).start()
+
+        Thread(target=self.update,args=()).start()
         return self
 
     def update(self):
-        # Keep looping indefinitely until the thread is stopped
         while True:
-            # If the camera is stopped, stop the thread
             if self.stopped:
-                # Close camera resources
                 self.stream.release()
                 return
 
-            # Otherwise, grab the next frame from the stream
             (self.grabbed, self.frame) = self.stream.read()
 
     def read(self):
-	# Return the most recent frame
         return self.frame
 
     def stop(self):
-	# Indicate that the camera and thread should be stopped
         self.stopped = True
 
 app = Flask(__name__)
@@ -83,9 +78,9 @@ input_std = 127.5
 
 outname = output_details[0]['name']
 
-if ('StatefulPartitionedCall' in outname): # This is a TF2 model
+if ('StatefulPartitionedCall' in outname): # TF2 model
     boxes_idx, classes_idx, scores_idx = 1, 3, 0
-else: # This is a TF1 model
+else: # TF1 model
     boxes_idx, classes_idx, scores_idx = 0, 1, 2
 
 frame_rate_calc = 1
@@ -97,7 +92,6 @@ controlY = 0.0
 videostream = VideoStream(resolution=(imW,imH),framerate=30).start()
 time.sleep(1)
 
-#for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
 def getFramesGenerator():
     while True:
         t1 = cv2.getTickCount()
@@ -106,8 +100,8 @@ def getFramesGenerator():
         iSee = False
 
         frame1 = videostream.read()
-
-	frame = frame1.copy()
+        
+        frame = frame1.copy()
         frame = cv2.resize(frame, (480, 320))
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame_resized = cv2.resize(frame_rgb, (320, 320))
@@ -119,15 +113,13 @@ def getFramesGenerator():
         interpreter.set_tensor(input_details[0]['index'],input_data)
         interpreter.invoke()
 
-        boxes = interpreter.get_tensor(output_details[boxes_idx]['index'])[0] # Bounding box coordinates of detected objects
-        classes = interpreter.get_tensor(output_details[classes_idx]['index'])[0] # Class index of detected objects
-        scores = interpreter.get_tensor(output_details[scores_idx]['index'])[0] # Confidence of detected objects
+        boxes = interpreter.get_tensor(output_details[boxes_idx]['index'])[0] 
+        classes = interpreter.get_tensor(output_details[classes_idx]['index'])[0] 
+        scores = interpreter.get_tensor(output_details[scores_idx]['index'])[0] 
 
         for i in range(len(scores)):
             if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
 
-                # Get bounding box coordinates and draw box
-                # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
                 ymin = int(max(1,(boxes[i][0] * imH)))
                 xmin = int(max(1,(boxes[i][1] * imW)))
                 ymax = int(min(imH,(boxes[i][2] * imH)))
@@ -142,22 +134,19 @@ def getFramesGenerator():
                     2*(x_center-imW/2) / imW
                 )
 
+                object_name = labels[int(classes[i])] 
 
-                # Draw label
-                object_name = labels[int(classes[i])] # Look up object name from "labels" array using class index
+                label = '%s: %d%%' % (object_name, int(scores[i]*100)) 
+                labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) 
+                label_ymin = max(ymin, labelSize[1] + 10) 
+                cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) 
+                cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) 
 
-                print(object_name)
                 if object_name == 'Car':
                     iSee=True
                     break
                 else:
                     iSee=False
-
-                label = '%s: %d%%' % (object_name, int(scores[i]*100)) # Example: 'person: 72%'
-                labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) # Get font size
-                label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
-                cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) # Draw white box to put label text in
-                cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw label text
 
         if iSee == True:
             controlY = 0.5
@@ -165,20 +154,13 @@ def getFramesGenerator():
             controlX = 0.0
             controlY = 0.0
 
-        # All the results have been drawn on the frame, so it's time to display it.
-        #cv2.imshow('Object detector', frame)
-
-        # Calculate framerate
         t2 = cv2.getTickCount()
         time1 = (t2-t1)/freq
         frame_rate_calc= 1/time1
 
-        # # Press 'q' to quit
-        # if cv2.waitKey(1) == ord('q'):
-        #     break
-
-                # Draw framerate in corner of frame
         cv2.putText(frame,'FPS: {0:.2f}'.format(frame_rate_calc),(30,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,0),2,cv2.LINE_AA)
+        cv2.putText(frame, "iSee: {};".format(iSee), (width - 120, height - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 0, 0), 1, cv2.LINE_AA)
+        cv2.putText(frame, "controlX: {:.2f}".format(controlX), (width - 70, height - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 0, 0), 1, cv2.LINE_AA,)
 
         _, buffer = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\n'
@@ -205,6 +187,5 @@ def control():
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)
 
-# Clean up
 cv2.destroyAllWindows()
 videostream.stop()
