@@ -4,14 +4,16 @@ import cv2
 import numpy as np
 import sys
 import time
+import threading
 from threading import Thread
 import importlib.util
 from flask import Flask, render_template, Response, Request
 import serial
+import json
 
 class VideoStream:
     """Camera object that controls video streaming from the Picamera"""
-    def __init__(self,resolution=(640,480),framerate=30):
+    def __init__(self,resolution=(640, 480),framerate=30):
         self.stream = cv2.VideoCapture(0)
         ret = self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         ret = self.stream.set(3,resolution[0])
@@ -42,10 +44,10 @@ class VideoStream:
 app = Flask(__name__)
 
 MODEL_NAME = 'models'
-GRAPH_NAME = 'detect.tflite'
-LABELMAP_NAME = 'labelmap.txt'
+GRAPH_NAME = 'detect1.tflite'
+LABELMAP_NAME = 'labelmap1.txt'
 min_conf_threshold = float(0.5)
-resW, resH = 480, 320
+resW, resH = 640, 480
 imW, imH = int(resW), int(resH)
 
 pkg = importlib.util.find_spec('tflite_runtime')
@@ -103,7 +105,7 @@ def getFramesGenerator():
         frame1 = videostream.read()
         
         frame = frame1.copy()
-        frame = cv2.resize(frame, (480, 320))
+        #frame = cv2.resize(frame, (480, 320))
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame_resized = cv2.resize(frame_rgb, (320, 320))
         input_data = np.expand_dims(frame_resized, axis=0)
@@ -127,13 +129,31 @@ def getFramesGenerator():
                 xmax = int(min(imW,(boxes[i][3] * imW)))
                 
                 cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
+                
+
 
                 x_center = (xmin + xmax) / 2
                 y_center = (ymax + ymin) / 2
+                
+
+                cv2.circle(frame, (int(x_center),int(y_center)), 7, (0,0,255), -1)
 
                 controlX = (
                     2*(x_center-imW/2) / imW
                 )
+                controlX = round(controlX, 3)
+                #controlY = (
+                #    2*(y_center-imH/2) / imH
+                
+                
+                if controlX < -0.35:
+                    controlX += 0.20
+                elif controlX > 0.35:
+                    controlX -= 0.20
+
+                if abs(controlX) < 0.35:
+                    controlX = 0
+
 
                 object_name = labels[int(classes[i])] 
 
@@ -143,14 +163,15 @@ def getFramesGenerator():
                 cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) 
                 cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) 
 
-                if object_name == 'Car':
+                if object_name == 'Apple' or object_name == 'Mobile phone':
                     iSee=True
                     break
                 else:
                     iSee=False
 
+        
         if iSee == True:
-            controlY = 0.5
+            controlY = 0.4
         else:
             controlX = 0.0
             controlY = 0.0
@@ -160,12 +181,14 @@ def getFramesGenerator():
         frame_rate_calc= 1/time1
 
         cv2.putText(frame,'FPS: {0:.2f}'.format(frame_rate_calc),(30,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,0),2,cv2.LINE_AA)
-        cv2.putText(frame, "iSee: {};".format(iSee), (width - 120, height - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 0, 0), 1, cv2.LINE_AA)
-        cv2.putText(frame, "controlX: {:.2f}".format(controlX), (width - 70, height - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 0, 0), 1, cv2.LINE_AA,)
+        cv2.putText(frame, "iSee: {};".format(iSee), (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 0, 0), 1, cv2.LINE_AA)
+        cv2.putText(frame, "controlX: {:.2f}".format(controlX), (30, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 0, 0), 1, cv2.LINE_AA,)
 
         _, buffer = cv2.imencode('.jpg', frame)
-        yield (b'--frame\r\n'
-            b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        yield (b'--frame\r\n' 
+               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        
+        #time.sleep(1)
 
 @app.route('/video_feed')
 def video_feed():
@@ -175,7 +198,6 @@ def video_feed():
 
 @app.route('/')
 def index():
-    """ Крутим html страницу """
     return render_template('index.html')
 
 @app.route('/control')
@@ -191,9 +213,9 @@ if __name__ == '__main__':
         "speedA": 0,
         "speedB": 0  
     }
-    speedScale = 0.60 
+    speedScale = 0.6 
     maxAbsSpeed = 100 
-    sendFreq = 10 
+    sendFreq = 10
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--port", type=int, default=5000, help="Running port")
