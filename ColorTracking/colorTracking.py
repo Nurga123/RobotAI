@@ -53,7 +53,9 @@ def getFramesGenerator():
                     controlX = (
                         2 * (cx - width / 2) / width
                     )  # нормализация к диапазону [1:1]
-
+                        
+                    if abs(controlX) < 0.2:
+                        controlX = 0
                     cv2.drawContours(frame, maxc, -1, (0, 255, 0), 1)  # рисуем контур
                     cv2.line(
                         frame, (cx, 0), (cx, height), (0, 255, 0), 1

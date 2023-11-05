@@ -145,15 +145,9 @@ def getFramesGenerator():
                 #controlY = (
                 #    2*(y_center-imH/2) / imH
                 
-                
-                if controlX < -0.35:
-                    controlX += 0.20
-                elif controlX > 0.35:
-                    controlX -= 0.20
 
-                if abs(controlX) < 0.35:
+                if abs(controlX) < 0.2:
                     controlX = 0
-
 
                 object_name = labels[int(classes[i])] 
 
@@ -163,7 +157,7 @@ def getFramesGenerator():
                 cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) 
                 cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) 
 
-                if object_name == 'Apple' or object_name == 'Mobile phone':
+                if object_name == 'Human hand' or object_name == 'Mobile phone':
                     iSee=True
                     break
                 else:
@@ -171,7 +165,10 @@ def getFramesGenerator():
 
         
         if iSee == True:
-            controlY = 0.4
+            if controlX == 0:
+                controlY = 0.7
+            else:
+                controlY = 0
         else:
             controlX = 0.0
             controlY = 0.0
@@ -213,7 +210,7 @@ if __name__ == '__main__':
         "speedA": 0,
         "speedB": 0  
     }
-    speedScale = 0.6 
+    speedScale = 0.5 
     maxAbsSpeed = 100 
     sendFreq = 10
     
