@@ -16,70 +16,68 @@ controlX, controlY = 0.0, 0.0
 
 
 def getFramesGenerator():
-    """Генератор фреймов для вывода в веб-страницу, тут же можно поиграть с openCV"""
     global controlX, controlY
     while True:
         iSee = False
-
         success, frame = camera.read()
         if success:
             frame = cv2.resize(frame, (360, 240), interpolation=cv2.INTER_AREA)
             height, width = frame.shape[0:2]
 
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  # переводим кадр из RGB в HSV
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  
             binary = cv2.inRange(
                 hsv, (18, 60, 100), (32, 255, 255)
-            )  # пороговая обработка кадра (выделяем все желтое)
+            )  
 
             contours, _ = cv2.findContours(
                 binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
             )
             if len(contours) != 0:
                 maxc = max(contours, key=cv2.contourArea)
-                moments = cv2.moments(maxc)  # получаем моменты этого контура
+                moments = cv2.moments(maxc) 
 
                 if (
                     moments["m00"] > 20
-                ):  # контуры с площадью меньше 20 пикселей не будут учитываться
+                ):  
                     cx = int(
                         moments["m10"] / moments["m00"]
-                    )  # находим координаты центра контура по x
+                    )  
                     cy = int(
                         moments["m01"] / moments["m00"]
-                    )  # находим координаты центра контура по y
+                    )  
 
-                    iSee = True  # флаг
+                    iSee = True  
 
                     controlX = (
                         2 * (cx - width / 2) / width
-                    )  # нормализация к диапазону [1:1]
+                    )  
                         
                     if abs(controlX) < 0.2:
                         controlX = 0
-                    cv2.drawContours(frame, maxc, -1, (0, 255, 0), 1)  # рисуем контур
+                    cv2.drawContours(frame, maxc, -1, (0, 255, 0), 1) 
                     cv2.line(
                         frame, (cx, 0), (cx, height), (0, 255, 0), 1
-                    )  # рисуем линию линию по x
-                    cv2.line(frame, (0, cy), (width, cy), (0, 255, 0), 1)  # линия по y
+                    ) 
+                    cv2.line(frame, (0, cy), (width, cy), (0, 255, 0), 1) 
 
-            if iSee:  # если был найден объект
-                controlY = 0.5  # начинаем ехать вперед с 50% мощностью
+            if iSee: 
+                controlY = 0.5  
             else:
-                controlY = 0.0  # останавливаемся
-                controlX = 0.0  # сбрасываем меру поворота
+                controlY = 0.0  
+                controlX = 0.0  
 
             miniBin = cv2.resize(
                 binary,
                 (
                     int(binary.shape[1] / 4),
                     int(binary.shape[0] / 4),
-                ),  # накладываем поверх
+                ),  
                 interpolation=cv2.INTER_AREA,
-            )  # кадра маленькую
-            miniBin = cv2.cvtColor(miniBin, cv2.COLOR_GRAY2BGR)  # битовую маску
+            )  
+            miniBin = cv2.cvtColor(miniBin, cv2.COLOR_GRAY2BGR) 
             frame[
                 -2 - miniBin.shape[0] : -2, 2 : 2 + miniBin.shape[1]
-            ] = miniBin  # для наглядности
+            ] = miniBin 
 
             cv2.putText(
                 frame,
@@ -90,7 +88,7 @@ def getFramesGenerator():
                 (255, 0, 0),
                 1,
                 cv2.LINE_AA,
-            )  # добавляем поверх кадра текст
+            )  
             cv2.putText(
                 frame,
                 "controlX: {:.2f}".format(controlX),
@@ -100,7 +98,7 @@ def getFramesGenerator():
                 (255, 0, 0),
                 1,
                 cv2.LINE_AA,
-            )  # добавляем поверх кадра текст
+            )  
 
             _, buffer = cv2.imencode(".jpg", frame)
             yield (
@@ -124,10 +122,10 @@ def index():
 if __name__ == "__main__":
      # Arduino
     msg = {
-        "speedA": 0,  # в пакете посылается скорость на левый и правый борт тележки
-        "speedB": 0  #
+        "speedA": 0,  
+        "speedB": 0  
     }
-    # параметры робота
+    
     speedScale = 0.60 
     maxAbsSpeed = 100  
     sendFreq = 10  
@@ -140,9 +138,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     
-    serialPort = serial.Serial(args.serial, 9600)   # открываем uart
+    serialPort = serial.Serial(args.serial, 9600)  
     def sender():
-        """ функция цикличной отправки пакетов по uart """
         global controlX, controlY
         while True:
             speedA = maxAbsSpeed * (controlY + controlX)
@@ -157,4 +154,4 @@ if __name__ == "__main__":
     
     threading.Thread(target=sender, daemon=True).start()
 
-    app.run(debug=False, host=args.ip, port=5000)  # запускаем flask приложение
+    app.run(debug=False, host=args.ip, port=5000)  
