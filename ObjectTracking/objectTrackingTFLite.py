@@ -105,7 +105,6 @@ def getFramesGenerator():
         frame1 = videostream.read()
         
         frame = frame1.copy()
-        #frame = cv2.resize(frame, (480, 320))
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame_resized = cv2.resize(frame_rgb, (320, 320))
         input_data = np.expand_dims(frame_resized, axis=0)
@@ -142,9 +141,6 @@ def getFramesGenerator():
                     2*(x_center-imW/2) / imW
                 )
                 controlX = round(controlX, 3)
-                #controlY = (
-                #    2*(y_center-imH/2) / imH
-                
 
                 if abs(controlX) < 0.2:
                     controlX = 0
@@ -205,7 +201,6 @@ def control():
     return '', 200, {'Content-Type': 'text/plain'}
 
 if __name__ == '__main__':
-         # Arduino
     msg = {
         "speedA": 0,
         "speedB": 0  
