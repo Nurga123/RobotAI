@@ -13,7 +13,6 @@ controlX, controlY = 0, 0
 
 
 def getFramesGenerator():
-    """ Генератор фреймов для вывода в веб-страницу, тут же можно поиграть с openCV"""
     while True:
         success, frame = camera.read()  
         if success:
@@ -26,19 +25,15 @@ def getFramesGenerator():
 
 @app.route('/video_feed')
 def video_feed():
-    """ Генерируем и отправляем изображения с камеры"""
     return Response(getFramesGenerator(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
 
 @app.route('/')
 def index():
-    """ Крутим html страницу """
     return render_template('index.html')
 
 
 @app.route('/control')
 def control():
-    """ Пришел запрос на управления роботом """
     global controlX, controlY
     controlX, controlY = float(request.args.get('x')) / 100.0, float(request.args.get('y')) / 100.0
     return '', 200, {'Content-Type': 'text/plain'}
@@ -63,7 +58,6 @@ if __name__ == '__main__':
     serialPort = serial.Serial(args.serial, 9600)
 
     def sender():
-        """ функция цикличной отправки пакетов по uart """
         global controlX, controlY
         while True:
             speedA = maxAbsSpeed * (controlY + controlX)    
