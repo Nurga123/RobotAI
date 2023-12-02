@@ -1,45 +1,93 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
     <title>Object Tracking</title>
-	<style>
-	html{
-		width: 100%;
-		height: 100%;
-	}
+    <style>
+      html {
+        width: 100%;
+        height: 100%;
+      }
 
-	body {
-		position:absolute; top:0; bottom:0; right:0; left:0;
-		margin: 0;
-		background-color: #000000;
-	}
-	
-	#videoContainer {
-		background-color: #00000000;
-	}
-	
-	#video {
-		width: 100vw;
-		height: 100vh;
-		display: block;
-		margin: auto;
-	}
-	
-	#joyDiv {
-		width: max(33vw, 33vh);
-		height: max(33vw, 33vh);
-		max-width: 400px;
-		max-height: 400px;
-		position: absolute;
-		bottom: 0%;
-		right: 0%;
-	}
-	
-	</style>
-</head>
-<body>
-	<div id="videoContainer"><img id="video" src="{{ url_for('video_feed') }}"></div>
-</body>
+      body {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        margin: 0;
+        background-color: #000000;
+      }
+
+      #videoContainer {
+        background-color: #00000000;
+      }
+
+      #video {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+        margin: auto;
+      }
+
+      #joyDiv {
+        width: max(33vw, 33vh);
+        height: max(33vw, 33vh);
+        max-width: 400px;
+        max-height: 400px;
+        position: absolute;
+        bottom: 0%;
+        right: 0%;
+      }
+
+      .button-container {
+        text-align: center;
+        margin-top: 10px;
+      }
+
+      .object-button {
+        margin: 5px;
+        padding: 10px;
+        font-size: 16px;
+        background-color: #3498db;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="videoContainer">
+      <img id="video" src="{{ url_for('video_feed') }}" />
+    </div>
+
+    <div class="button-container">
+      <button class="object-button" onclick="sendCommand('Human hand')">
+        Human hand
+      </button>
+      <button class="object-button" onclick="sendCommand('Apple')">
+        Apple
+      </button>
+      <button class="object-button" onclick="sendCommand('Plastic')">
+        Plastic
+      </button>
+      <button class="object-button" onclick="sendCommand('Mobile phone')">
+        Mobile Phone
+      </button>
+    </div>
+
+    <script>
+      function sendCommand(objectClass) {
+        fetch(`/detect/${objectClass}`)
+          .then((response) => response.text())
+          .then((data) => console.log(data))
+          .catch((error) => console.error("Error:", error));
+      }
+    </script>
+  </body>
 </html>
