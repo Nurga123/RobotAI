@@ -95,6 +95,7 @@ freq = cv2.getTickFrequency()
 
 controlX = 0.0
 controlY = 0.0
+iSee = False
 
 videostream = VideoStream(resolution=(imW, imH), framerate=30).start()
 time.sleep(1)
@@ -112,7 +113,7 @@ def getFramesGenerator():
         t1 = cv2.getTickCount()
 
         global controlX, controlY
-        iSee = False
+        global iSee
 
         frame1 = videostream.read()
 
@@ -259,24 +260,22 @@ def control():
 
 
 if __name__ == "__main__":
-    msg = {"speedA": 0, "speedB": 0}
+    msg = {"speedA": 0, "speedB": 0, "iSee": False}
     speedScale = 0.5
     maxAbsSpeed = 100
     sendFreq = 10
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--port", type=int, default=5000, help="Running port")
-    parser.add_argument("-i", "--ip", type=str, default="0.0.0.0", help="Ip address")
-    parser.add_argument(
-        "-s", "--serial", type=str, default="/dev/ttyUSB0", help="Serial port"
-    )
+    parser.add_argument("-p", "--port", type=int, default=5000)
+    parser.add_argument("-i", "--ip", type=str, default="0.0.0.0")
+    parser.add_argument("-s", "--serial", type=str, default="/dev/ttyUSB0")
     args = parser.parse_args()
 
     serialPort = serial.Serial(args.serial, 9600)
 
     def sender():
         """функция цикличной отправки пакетов по uart"""
-        global controlX, controlY
+        global controlX, controlY, iSee
         while True:
             speedA = maxAbsSpeed * (controlY + controlX)
             speedB = maxAbsSpeed * (controlY - controlX)
@@ -284,6 +283,7 @@ if __name__ == "__main__":
             speedB = max(-maxAbsSpeed, min(speedB, maxAbsSpeed))
 
             msg["speedA"], msg["speedB"] = speedScale * speedA, speedScale * speedB
+            msg["iSee"] = iSee
 
             serialPort.write(json.dumps(msg, ensure_ascii=False).encode("utf8"))
             time.sleep(1 / sendFreq)

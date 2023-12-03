@@ -1,0 +1,13 @@
+# Создаем пустой список для матрицы
+matrix = []
+
+length = int(input())
+
+# Считываем строки ввода и разбиваем их на числа
+for i in range(length):
+    row = list(map(int, input().split()))
+    matrix.append(row)
+
+# Выводим полученную матрицу
+for row in matrix:
+    print(row)
