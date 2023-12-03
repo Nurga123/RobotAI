@@ -48,8 +48,8 @@ app = Flask(__name__)
 object_class = "default"
 
 MODEL_NAME = "models"
-GRAPH_NAME = "detect1.tflite"
-LABELMAP_NAME = "labelmap1.txt"
+GRAPH_NAME = "detect02.12.tflite"
+LABELMAP_NAME = "labelmap02.12.txt"
 min_conf_threshold = float(0.5)
 resW, resH = 640, 480
 imW, imH = int(resW), int(resH)
@@ -104,6 +104,7 @@ time.sleep(1)
 def detect(new_object_class):
     global object_class
     object_class = new_object_class
+    print(object_class)
 
 
 def getFramesGenerator():
