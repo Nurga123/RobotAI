@@ -147,12 +147,13 @@ def getFramesGenerator():
                 cv2.circle(frame, (int(x_center), int(y_center)), 7, (0, 0, 255), -1)
 
                 controlX = 2 * (x_center - imW / 2) / imW
-                controlX = round(controlX, 3)
+                #controlX = round(controlX, 3)
 
                 if abs(controlX) < 0.2:
                     controlX = 0
 
-                object_name = labels[int(classes[i])]
+                #object_name = labels[int(classes[i])]
+                object_name = object_class
 
                 label = "%s: %d%%" % (object_name, int(scores[i] * 100))
                 labelSize, baseLine = cv2.getTextSize(
@@ -217,7 +218,7 @@ def getFramesGenerator():
         )
         cv2.putText(
             frame,
-            "controlX: {:.2f}".format(controlX),
+            "controlX: {:.2f}".format(round(controlX,2)),
             (30, 150),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.75,
