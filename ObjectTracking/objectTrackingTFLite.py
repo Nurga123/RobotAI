@@ -181,15 +181,11 @@ def getFramesGenerator():
                         2,
                     )
                     iSee = True
-                    break
                 else:
                     iSee = False
 
         if iSee == True:
-            if controlX == 0:
-                controlY = 0.7
-            else:
-                controlY = 0
+            controlY = 0.7
         else:
             controlX = 0.0
             controlY = 0.0
@@ -263,7 +259,7 @@ def control():
 
 
 if __name__ == "__main__":
-    msg = {"speedA": 0, "speedB": 0, "iSee": False}
+    msg = {"speedA": 0, "speedB": 0, "iSee": False, "mode": 1}
     speedScale = 0.5
     maxAbsSpeed = 100
     sendFreq = 10
@@ -287,7 +283,7 @@ if __name__ == "__main__":
 
             msg["speedA"], msg["speedB"] = speedScale * speedA, speedScale * speedB
             msg["iSee"] = iSee
-
+            msg["mode"] = 1
             serialPort.write(json.dumps(msg, ensure_ascii=False).encode("utf8"))
             time.sleep(1 / sendFreq)
 

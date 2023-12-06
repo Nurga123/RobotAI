@@ -21,8 +21,8 @@ def getFramesGenerator():
             _, buffer = cv2.imencode('.jpg', frame)
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        #else:
-        #    print("Failed to open camera")
+        else:
+            print("Failed to open camera")
 
 @app.route('/video_feed')
 def video_feed():
@@ -69,9 +69,7 @@ if __name__ == '__main__':
             speedB = max(-maxAbsSpeed, min(speedB, maxAbsSpeed))    
 
             msg["speedA"], msg["speedB"] = speedScale * speedA, speedScale * speedB
-            msg["iSee"] = None
             msg["mode"] = mode
-            
             serialPort.write(json.dumps(msg, ensure_ascii=False).encode("utf8"))
             time.sleep(1 / sendFreq)
 
