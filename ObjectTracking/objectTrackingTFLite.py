@@ -135,57 +135,56 @@ def getFramesGenerator():
         for i in range(len(scores)):
             if (scores[i] > min_conf_threshold) and (scores[i] <= 1.0):
                 object_name = labels[int(classes[i])]
+
+                ymin = int(max(1, (boxes[i][0] * imH)))
+                xmin = int(max(1, (boxes[i][1] * imW)))
+                ymax = int(min(imH, (boxes[i][2] * imH)))
+                xmax = int(min(imW, (boxes[i][3] * imW)))
+
+                cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (10, 255, 0), 2)
+
+                x_center = (xmin + xmax) / 2
+                y_center = (ymax + ymin) / 2
+
+                cv2.circle(frame, (int(x_center), int(y_center)), 7, (0, 0, 255), -1)
+
+                controlX = 2 * (x_center - imW / 2) / imW
+                # controlX = round(controlX, 3)
+
+                if abs(controlX) < 0.2:
+                    controlX = 0
+
+                    #
+                    #
+
+                label = "%s: %d%%" % (object_name, int(scores[i] * 100))
+                labelSize, baseLine = cv2.getTextSize(
+                    label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2
+                )
+                label_ymin = max(ymin, labelSize[1] + 10)
+                cv2.rectangle(
+                    frame,
+                    (xmin, label_ymin - labelSize[1] - 10),
+                    (xmin + labelSize[0], label_ymin + baseLine - 10),
+                    (255, 255, 255),
+                    cv2.FILLED,
+                )
+                cv2.putText(
+                    frame,
+                    label,
+                    (xmin, label_ymin - 7),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (0, 0, 0),
+                    2,
+                )
                 if object_name == object_class:
-                    ymin = int(max(1, (boxes[i][0] * imH)))
-                    xmin = int(max(1, (boxes[i][1] * imW)))
-                    ymax = int(min(imH, (boxes[i][2] * imH)))
-                    xmax = int(min(imW, (boxes[i][3] * imW)))
-
-                    cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (10, 255, 0), 2)
-
-                    x_center = (xmin + xmax) / 2
-                    y_center = (ymax + ymin) / 2
-
-                    cv2.circle(
-                        frame, (int(x_center), int(y_center)), 7, (0, 0, 255), -1
-                    )
-
-                    controlX = 2 * (x_center - imW / 2) / imW
-                    # controlX = round(controlX, 3)
-
-                    if abs(controlX) < 0.2:
-                        controlX = 0
-
-                    #
-                    #
-
-                    label = "%s: %d%%" % (object_name, int(scores[i] * 100))
-                    labelSize, baseLine = cv2.getTextSize(
-                        label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2
-                    )
-                    label_ymin = max(ymin, labelSize[1] + 10)
-                    cv2.rectangle(
-                        frame,
-                        (xmin, label_ymin - labelSize[1] - 10),
-                        (xmin + labelSize[0], label_ymin + baseLine - 10),
-                        (255, 255, 255),
-                        cv2.FILLED,
-                    )
-                    cv2.putText(
-                        frame,
-                        label,
-                        (xmin, label_ymin - 7),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.7,
-                        (0, 0, 0),
-                        2,
-                    )
                     iSee = True
                 else:
                     iSee = False
 
         if iSee == True:
-            controlY = 0.7
+            controlY = 1
         else:
             controlX = 0.0
             controlY = 0.0
