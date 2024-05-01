@@ -95,7 +95,7 @@ freq = cv2.getTickFrequency()
 
 controlX = 0.0
 controlY = 0.0
-iSee = False
+# iSee = False
 
 videostream = VideoStream(resolution=(imW, imH), framerate=30).start()
 time.sleep(1)
@@ -113,7 +113,8 @@ def getFramesGenerator():
         t1 = cv2.getTickCount()
 
         global controlX, controlY
-        global iSee
+        iSee = False
+        # global iSee
 
         frame1 = videostream.read()
 
@@ -180,8 +181,6 @@ def getFramesGenerator():
                 )
                 if object_name == object_class:
                     iSee = True
-                else:
-                    iSee = False
 
         if iSee == True:
             controlY = 1
